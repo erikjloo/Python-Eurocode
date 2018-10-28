@@ -101,7 +101,7 @@ def EC2_ductility_requirement(Xu, d, fck, fyd, units="MPa"):
     return Xu_max
 
 #===========================================================================
-#   ACI Equations - Minimum reinforcement (Md > Mcr)
+#   EC2 Equations - Minimum reinforcement (Md > Mcr)
 #===========================================================================
 
 
@@ -121,7 +121,7 @@ def EC2_steel_ratio(As, fck, fyk, b, d, h, Xu, units="MPa"):
     As = convert_2_mm2(As, units)
 
     fctm = EC2_flex_tensile_strength(fck, h)  # units="MPa"
-    A_min = (0.26*fctm/fyk) * (b*d)
+    A_min = max((0.26*fctm/fyk),0.0013)* (b*d)
     
 
     fcd = fck/1.5
