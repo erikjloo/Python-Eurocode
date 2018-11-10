@@ -10,7 +10,7 @@ from Utilities import *
 #===========================================================================
 
 
-def EC2_elastic_modulus(fck, units="MPa"):
+def elastic_modulus(fck, units="MPa"):
     """ Input:  fck = char. comp. strength of concrete
                 units = "MPa" or "psi" (default = "MPa")
         Output: Ec = mean elastic modulus of concrete """
@@ -20,7 +20,7 @@ def EC2_elastic_modulus(fck, units="MPa"):
     return Ec if units == "MPa" else convert_2_psi(Ec, "MPa")
 
 
-def EC2_tensile_strength(fck, units="MPa"):
+def tensile_strength(fck, units="MPa"):
     """ Input:  fck = char. comp. strength of concrete
                 units = "MPa" or "psi" (default = "MPa")
         Output: fctm = mean tensile strength of concrete """
@@ -30,19 +30,19 @@ def EC2_tensile_strength(fck, units="MPa"):
     return fctm if units == "MPa" else convert_2_psi(fctm, "MPa")
 
 
-def EC2_flex_tensile_strength(fck, h, units="MPa"):
+def flex_tensile_strength(fck, h, units="MPa"):
     """ Input:  fck = char. comp. strength of concrete
                 h = height of reinforced concrete beam
                 units = "MPa" or "psi" (default = "MPa") 
         Output: fctm,fl = mean tensile strength for flexure """
     fck = convert_2_MPa(fck, units)
-    fctm = EC2_tensile_strength(fck)
+    fctm = tensile_strength(fck)
     h = convert_2_mm(h, units)
     fctm = min((1.6-h/1000)*fctm, fctm)
     return fctm if units == "MPa" else convert_2_psi(fctm, "MPa")
 
 
-def EC2_ultimate_strain(fck, units="MPa"):
+def ultimate_strain(fck, units="MPa"):
     """ Input:  fck = char. comp. strength of concrete
                 units = "MPa" or "psi" (default = "MPa") 
         Output: ecu3 = ultimate tensile strain """
@@ -55,7 +55,7 @@ def EC2_ultimate_strain(fck, units="MPa"):
 #===========================================================================
 
 
-def EC2_alpha_beta(fck, units="MPa"):
+def alpha_beta(fck, units="MPa"):
     """ Input:  fck = char. comp. strength of concrete
                 units = "MPa" or "psi" (default = "MPa") 
         Output: alpha = factor for bilinear stress block
@@ -66,7 +66,7 @@ def EC2_alpha_beta(fck, units="MPa"):
     return [min(alpha, 0.75), min(beta, 0.39)]
 
 
-def EC2_lambda_eta(fck, units="MPa"):
+def lambda_eta(fck, units="MPa"):
     """ Input:  fck = char. comp. strength of concrete
                 units = "MPa" or "psi" (default = "MPa") 
         Output: la = (height of compressive zone)/Xu
@@ -81,7 +81,7 @@ def EC2_lambda_eta(fck, units="MPa"):
 #===========================================================================
 
 
-def EC2_ductility_requirement(Xu, d, fck, fyd, units="MPa"):
+def ductility_requirement(Xu, d, fck, fyd, units="MPa"):
     """ Input:  Xu = dist. from comp. to neutral axis 
                 d = dist. from comp. to reinforcement
                 fck = char. comp. strength of concrete
@@ -90,7 +90,7 @@ def EC2_ductility_requirement(Xu, d, fck, fyd, units="MPa"):
         Output: Xu_max = Max. dist. to neutral axis """
     [fck, fyd] = convert_2_MPa(np.array([fck, fyd]), units)
     
-    ecu = EC2_ultimate_strain(fck)  # units="MPa"
+    ecu = ultimate_strain(fck)  # units="MPa"
     Xu_max = min(ecu*10**6/(ecu*10**6+7*fyd), 0.535)*d
     if Xu < Xu_max:
         logging.info(
@@ -105,7 +105,7 @@ def EC2_ductility_requirement(Xu, d, fck, fyd, units="MPa"):
 #===========================================================================
 
 
-def EC2_steel_ratio(As, fck, fyk, b, d, h, Xu, units="MPa"):
+def steel_ratio(As, fck, fyk, b, d, h, Xu, units="MPa"):
     """ Input:  As = area of reinforcement steel
                 fck = char. comp. strength of concrete
                 fyk = char. yield stress of reinforcement
@@ -120,14 +120,14 @@ def EC2_steel_ratio(As, fck, fyk, b, d, h, Xu, units="MPa"):
     [b, d, h, Xu] = convert_2_mm(np.array([b, d, h, Xu]), units)
     As = convert_2_mm2(As, units)
 
-    fctm = EC2_flex_tensile_strength(fck, h)  # units="MPa"
+    fctm = flex_tensile_strength(fck, h)  # units="MPa"
     A_min = max((0.26*fctm/fyk),0.0013)* (b*d)
     
 
     fcd = fck/1.5
     fyd = fyk/1.15
 
-    alpha = EC2_alpha_beta(fck)[0]  # units="MPa"
+    alpha = alpha_beta(fck)[0]  # units="MPa"
     A_max = min(alpha*(fcd/fyd)*b*Xu, 0.4*b*d)
 
     compare_steel_area(As, A_min, A_max)

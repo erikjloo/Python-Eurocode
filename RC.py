@@ -1,31 +1,74 @@
-# Import Standard Liself.braries
+# Import Standard Libraries
 import logging
 import scipy as np
-from Util_ACI import *
-from Util_EC2 import *
 
-# self.Assume steel yields self.before concrete crushes
+# Import Local Libraries
+import Util_ACI as ACI
+import Util_EC2 as EC2
 
 
-# class PrestressedBeam():
+#===========================================================================
+#   Reinforced Beam
+#===========================================================================
+
+class ReinforcedBeam():
+    """ Abstract Reinforced Beam Class
+    
+    Static Members:
+        gamma_c = 1.5
+        gamma_s = 1.15
+        niter = 20
+
+    Instance Members:
+    
+    Public Methods:
+
+    Private Methods:
+        __plotArrow(self, ax, x, y, dx, dy, color)
+        __plotConcreteStress(self, ax, fcd, h_top, h_bot) 
+    """
+    
+    gamma_c = 1.5
+    gamma_s = 1.15
+    niter = 20
+    ta = 1
+
+    def __init__(self, name=None):
+        self.ta = self.h/100
+        self.name = name
+
+    def __plotArrow(self, ax, x, y, dx, dy, color):
+        ax.arrow(x, y, dx, dy, fc=color, ec=color,
+             width=self.ta, head_width=3*self.ta, head_length=self.ta/10)
+
+    def __plotConcreteStress(self, ax, fcd, h_top, h_bot):
+        X0 = [-fcd, 0]
+        Y0 = [h_top, h_top]
+        Y1 = [h_bot, h_bot]
+        ax.fill_between(X0, Y0, Y1, color='b', alpha=0.3)
+        # self.__plotArrow(ax, fcd, (h_top-h_bot)/2, -9*fcd/10, 0, 'b')
+
+    @staticmethod
+    def beamFactory():
+        pass
 
 #===========================================================================
 #   Rectangular Beam
 #===========================================================================
 
-class RectangularBeam():
+class RectangularBeam(ReinforcedBeam):
+    # b = 558.8
     # h = 609.6
     # d = 546.1
-    # b = 558.8
     # As = 3870
     # fck = 27.6
     # fyk = 414
     # rho = 25
     # Es = 200000
     # units = "MPa"
+    b = 22
     h = 24
     d = 21.5
-    b = 22
     As = 6
     fck = 4000
     fyk = 60000
@@ -38,10 +81,10 @@ class RectangularBeam():
     #---------------------------------------------------------------------------
 
     def ACI_cracking_moment(self):
-        """ Mcr = moment capacity prior to cracking """
+
         logging.debug("Uncracked moment capacity per ACI")
-        Ec = ACI_elastic_modulus(self.fck, self.rho, self.units)
-        fr = ACI_tensile_strength(self.fck, self.units)
+        Ec = ACI.elastic_modulus(self.fck, self.rho, self.units)
+        fr = ACI.tensile_strength(self.fck, self.units)
         n = self.Es/Ec
         logging.debug("    fr = {:6.2f}, Es/Ec = {:3.2f}".format(fr, n))
 
@@ -62,7 +105,7 @@ class RectangularBeam():
 
     def ACI_elastic_moment(self):
 
-        Ec = ACI_elastic_modulus(self.fck, self.rho, self.units)
+        Ec = ACI.elastic_modulus(self.fck, self.rho, self.units)
         fc = 0.5*self.fck
         n = self.Es/Ec
         As = n*self.As
@@ -79,14 +122,14 @@ class RectangularBeam():
         return Mel
 
     def ACI_design_moment(self):
-        """ Mu = ultimate moment """
-        beta1 = ACI_beta(self.fck, self.units)
+
+        beta1 = ACI.beta(self.fck, self.units)
         logging.debug("    beta1 = {:3.2f}".format(beta1))
         c = (self.As*self.fyk)/(0.85*self.fck*self.b)/beta1
         logging.debug("    c = {:6.2f}".format(c))
-        phi = ACI_ductility_requirement(c, self.d, type="beam")
+        phi = ACI.ductility_requirement(c, self.d, type="beam")
         logging.debug("    phi = {:3.2f}".format(phi))
-        ACI_steel_ratio(self.As, self.fck, self.fyk,
+        ACI.steel_ratio(self.As, self.fck, self.fyk,
                         self.b, self.d, self.units)
         MRd = phi*self.As*self.fyk*(self.d-beta1*c/2)
         logging.info("    MRd = {:5.2f}".format(MRd))
@@ -97,9 +140,10 @@ class RectangularBeam():
     #---------------------------------------------------------------------------
 
     def EC2_cracking_moment(self):
+
         logging.debug("Uncracked moment capacity per EC2")
-        Ec = EC2_elastic_modulus(self.fck, self.units)
-        fr = EC2_flex_tensile_strength(self.fck, self.h, self.units)
+        Ec = EC2.elastic_modulus(self.fck, self.units)
+        fr = EC2.flex_tensile_strength(self.fck, self.h, self.units)
         n = self.Es/Ec
         logging.debug("    fr = {:6.2f}, Es/Ec = {:3.2f}".format(fr, n))
 
@@ -121,7 +165,7 @@ class RectangularBeam():
 
     def EC2_elastic_moment(self):
 
-        Ec = EC2_elastic_modulus(self.fck, self.units)
+        Ec = EC2.elastic_modulus(self.fck, self.units)
         fc = 0.5*self.fck
         n = self.Es/Ec
         As = n*self.As
@@ -138,16 +182,16 @@ class RectangularBeam():
         return Mel
 
     def EC2_design_moment(self):
-        [alpha, beta] = EC2_alpha_beta(self.fck, self.units)
+        [alpha, beta] = EC2.alpha_beta(self.fck, self.units)
         logging.debug("    a = {:3.2f}, b = {:3.2f}".format(alpha, beta))
-        fyd = self.fyk/1.15
-        fcd = self.fck/1.5
-        logging.debug("    fyd = {:6.2f}, fcd = {:6.2f}".format(fyd, fcd))
+        fcd = self.fck/self.gamma_c
+        fyd = self.fyk/self.gamma_s
+        logging.debug("    fcd = {:6.2f}, fyd = {:6.2f}".format(fcd, fyd))
         Xu = self.As*fyd/(alpha*self.b*fcd)
-        Xu_max = EC2_ductility_requirement(
+        Xu_max = EC2.ductility_requirement(
             Xu, self.d, self.fck, fyd, self.units)
 
-        EC2_steel_ratio(self.As, self.fck, self.fyk, self.b,
+        EC2.steel_ratio(self.As, self.fck, self.fyk, self.b,
                         self.d, self.h, Xu_max, self.units)
 
         MRd = self.As*fyd*(self.d-beta*Xu)
@@ -173,34 +217,34 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
     # print("\n Ec for C30/37: \n")
-    # print(ACI_elastic_modulus(30, rho=25, units="MPa"))
-    # print(EC2_elastic_modulus(30))
+    # print(ACI.elastic_modulus(30, rho=25, units="MPa"))
+    # print(EC2.elastic_modulus(30))
     # print("\n Tensile strength for C30/37: \n")
-    # print(ACI_tensile_strength(30, units="MPa"))
-    # print(EC2_tensile_strength(30))
+    # print(ACI.tensile_strength(30, units="MPa"))
+    # print(EC2.tensile_strength(30))
     # print("\n Tensile strength for C55/67: \n")
-    # print(ACI_tensile_strength(55, units="MPa"))
-    # print(EC2_tensile_strength(55))
+    # print(ACI.tensile_strength(55, units="MPa"))
+    # print(EC2.tensile_strength(55))
     # print("\n Ultimate strain for C30/37 \n")
-    # print(ACI_ultimate_strain(30, units="MPa"))
-    # print(EC2_ultimate_strain(30))
+    # print(ACI.ultimate_strain(30, units="MPa"))
+    # print(EC2.ultimate_strain(30))
     # print("\n Ultimate strain for C55/67 \n")
-    # print(ACI_ultimate_strain(55, units="MPa"))
-    # print(EC2_ultimate_strain(55))
+    # print(ACI.ultimate_strain(55, units="MPa"))
+    # print(EC2.ultimate_strain(55))
     # print("\n alpha & Beta factors: \n")
-    # print(EC2_alpha_beta(10))
-    # print(EC2_alpha_beta(60))
-    # print(EC2_alpha_beta(80))
+    # print(EC2.alpha_beta(10))
+    # print(EC2.alpha_beta(60))
+    # print(EC2.alpha_beta(80))
     # print("\n Lambda & Eta factors: \n")
-    # print(EC2_lambda_eta(10))
-    # print(EC2_lambda_eta(60))
-    # print(EC2_lambda_eta(80))
+    # print(EC2.lambda_eta(10))
+    # print(EC2.lambda_eta(60))
+    # print(EC2.lambda_eta(80))
 
     beam = RectangularBeam()
     # print('\n Cracking Moment: \n')
-    # MRd = beam.ACI_cracking_moment()
+    # MRd = beam.ACI.cracking_moment()
     # print(MRd/12000)
-    # MRd = beam.EC2_cracking_moment()
+    # MRd = beam.EC2.cracking_moment()
     # print(MRd/12000)
 
     print('\n Elastic Moment: \n')

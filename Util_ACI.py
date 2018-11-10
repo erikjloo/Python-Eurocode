@@ -10,7 +10,7 @@ from Utilities import *
 #===========================================================================
 
 
-def ACI_elastic_modulus(fck, rho=145, units="psi"):
+def elastic_modulus(fck, rho=145, units="psi"):
     """ Input:  fck = char. comp. strength of concrete
                 rho = density of concrete (default = 145)
                 units = "MPa" or "psi" (default = "psi") 
@@ -21,7 +21,7 @@ def ACI_elastic_modulus(fck, rho=145, units="psi"):
     return Ec if units == "psi" else convert_2_MPa(Ec, "psi")
 
 
-def ACI_tensile_strength(fck, units="psi"):
+def tensile_strength(fck, units="psi"):
     """ Input:  fck = char. comp. strength of concrete 
                 units = "MPa" or "psi" (default = "psi")
         Output: fctm = mean tensile strength of concrete """
@@ -31,7 +31,7 @@ def ACI_tensile_strength(fck, units="psi"):
     return fctm if units == "psi" else convert_2_MPa(fctm, "psi")
 
 
-def ACI_ultimate_strain(fck, units="psi"):
+def ultimate_strain(fck, units="psi"):
     """ Input:  fck = char. comp. strength of concrete
                 units = "MPa" or "psi" (default = "psi") 
         Output: ecu = ultimate strain of concrete """
@@ -43,7 +43,7 @@ def ACI_ultimate_strain(fck, units="psi"):
 #===========================================================================
 
 
-def ACI_beta(fck, units="psi"):
+def beta(fck, units="psi"):
     """ Input:  fck = char. comp. strength of concrete
                 units = "MPa" or "psi" (default = "psi") 
         Output: beta_1 = a/c in Whitney stress block """
@@ -56,7 +56,7 @@ def ACI_beta(fck, units="psi"):
 #   ACI Equations - Maximum reinforcement (Ductility)
 #===========================================================================
 
-def ACI_ductility_requirement(c, d, type="beam"):
+def ductility_requirement(c, d, type="beam"):
     """ Input:  e_T = avg. tensile strain of steel
                 type = "beam", "ties" or "spiral"
         Output: phi = strength reduction factor """
@@ -78,7 +78,7 @@ def ACI_ductility_requirement(c, d, type="beam"):
 #   ACI Equations - Minimum reinforcement (Md > Mcr)
 #===========================================================================
 
-def ACI_steel_ratio(As, fck, fyk, b, d, units="psi"):
+def steel_ratio(As, fck, fyk, b, d, units="psi"):
     """ Input:  As = area of reinforcement steel
                 fck = char. comp. strength of concrete
                 fyk = char. yield stress of reinforcement
@@ -92,7 +92,7 @@ def ACI_steel_ratio(As, fck, fyk, b, d, units="psi"):
     As = convert_2_in2(As, units)
 
     A_min = max(3*np.sqrt(fck)/fyk, 200/fyk) * (b*d)
-    A_max = 0.365*(fck/fyk)*ACI_beta(fck) * (b*d)
+    A_max = 0.365*(fck/fyk)*beta(fck) * (b*d)
 
     compare_steel_area(As, A_min, A_max)
 
@@ -103,15 +103,15 @@ def ACI_steel_ratio(As, fck, fyk, b, d, units="psi"):
 #===========================================================================
 
 
-def ACI_barsize(Nbar, units="psi"):
-    """ bar_area = ACI_barsize(Nbar or bar_area) """
+def barsize(Nbar, units="psi"):
+    """ bar_area = barsize(Nbar or bar_area) """
     bar_area = {3: 0.11, 4: 0.20, 5: 0.31, 6: 0.44, 7: 0.60,
                 8: 0.79, 9: 1, 10: 1.27, 11: 1.56, 14: 2.25, 18: 4.00}
     return bar_area.get(Nbar, Nbar)
 
 
-def ACI_min_beam_width(numbar, rebar, units="psi"):
-    """ min_width = ACI_min_beam_width(numbar,rebar) """
+def min_beam_width(numbar, rebar, units="psi"):
+    """ min_width = min_beam_width(numbar,rebar) """
     if numbar > 1 & numbar < 7 & units == "psi":
         BW = [[7.0, 8.5, 10.0, 11.5, 13.0],
               [7.0, 8.5, 10.5, 12.0, 13.5],
