@@ -32,11 +32,11 @@ class ReinforcedBeam(metaclass=ABCMeta):
 	gamma_S = 1.15
 	niter = 20
 
-	h = fck = fyk = fpk = 0
+	H = d_S = As = fck = fyk = Es = k = 0
 	units = "MPa"
 
 	def __init__(self, name=None):
-		self.ta = self.h/500
+		self.ta = self.H/500
 		self.name = name
 
 	def plotArrow(self, ax, x, y, dx, dy, color):
